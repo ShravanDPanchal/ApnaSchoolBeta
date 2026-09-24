@@ -1,0 +1,27 @@
+name: apna_school_mobile
+description: "Apna School Mobile ERP & Quick Operations Android Client for Gujarat Schools"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+  dio: ^5.4.3+1
+  flutter_riverpod: ^2.5.1
+  flutter_secure_storage: ^9.0.0
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

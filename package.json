@@ -1,0 +1,29 @@
+{
+  "name": "apna-school",
+  "version": "1.0.0",
+  "private": true,
+  "description": "White-label School ERP + Operations + Accounting Management Platform for Gujarat, India",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace=apps/api run dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "build": "npm --workspace=packages/shared-types run build && npm --workspace=apps/api run build && npm --workspace=apps/web run build",
+    "test": "npm --workspace=apps/api run test",
+    "db:migrate": "npm --workspace=apps/api run prisma:migrate",
+    "db:seed": "npm --workspace=apps/api run db:seed"
+  },
+  "keywords": [
+    "school-erp",
+    "gujarat",
+    "accounting",
+    "rojmel",
+    "white-label",
+    "multi-tenant",
+    "deshi-nama"
+  ],
+  "author": "Apna School Architecture Team",
+  "license": "UNLICENSED"
+}

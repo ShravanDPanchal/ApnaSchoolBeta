@@ -1,0 +1,1072 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------------------------------------------------
+// PLATFORM & MULTI-TENANCY
+// -------------------------------------------------------------
+
+model Tenant {
+  id                    String            @id @default(uuid())
+  name                  String
+  slug                  String            @unique
+  code                  String            @unique
+  isActive              Boolean           @default(true)
+  subscriptionPlan      String?
+  subscriptionExpiresAt DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  userTenants           UserTenant[]
+  roles                 Role[]
+  schools               School[]
+  academicYears         AcademicYear[]
+  financialYears        FinancialYear[]
+  classes               Class[]
+  divisions             Division[]
+  subjects              Subject[]
+  students              Student[]
+  parents               Parent[]
+  enrollments           Enrollment[]
+  staff                 Staff[]
+  teacherAssignments    TeacherAssignment[]
+  studentAttendances    StudentAttendance[]
+  staffAttendances      StaffAttendance[]
+  timetablePeriods      TimetablePeriod[]
+  timetableEntries      TimetableEntry[]
+  examTypes             ExamType[]
+  exams                 Exam[]
+  marks                 Marks[]
+  gradeConfigs          GradeConfig[]
+  feeHeads              FeeHead[]
+  feeStructures         FeeStructure[]
+  studentFees           StudentFee[]
+  feePayments           FeePayment[]
+  accountGroups         AccountGroup[]
+  chartOfAccounts       ChartOfAccount[]
+  bankAccounts          BankAccount[]
+  journalEntries        JournalEntry[]
+  expenses              Expense[]
+  grants                Grant[]
+  grantTransactions     GrantTransaction[]
+  documents             Document[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+  schoolSettings        SchoolSetting[]
+}
+
+model User {
+  id               String        @id @default(uuid())
+  email            String?       @unique
+  phone            String?       @unique
+  passwordHash     String
+  isActive         Boolean       @default(true)
+  isSuperAdmin     Boolean       @default(false)
+  preferredLocale  String        @default("gu")
+  lastLoginAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  userTenants      UserTenant[]
+  students         Student[]
+  parents          Parent[]
+  staff            Staff[]
+  createdEntries   JournalEntry[] @relation("CreatedBy")
+  approvedEntries  JournalEntry[] @relation("ApprovedBy")
+  feePayments      FeePayment[]   @relation("ReceivedBy")
+  cancelledPayments FeePayment[]  @relation("CancelledBy")
+  createdExpenses  Expense[]      @relation("ExpenseCreatedBy")
+  approvedExpenses Expense[]      @relation("ExpenseApprovedBy")
+  auditLogs        AuditLog[]
+}
+
+model UserTenant {
+  id         String     @id @default(uuid())
+  userId     String
+  tenantId   String
+  isDefault  Boolean    @default(false)
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles  UserRole[]
+
+  @@unique([userId, tenantId])
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  tenantId        String
+  name            String
+  displayNameEn   String?
+  displayNameGu   String?
+  isSystemRole    Boolean          @default(false)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@unique([tenantId, name])
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  code            String           @unique
+  module          String
+  displayNameEn   String?
+  displayNameGu   String?
+  description     String?
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model UserRole {
+  id           String     @id @default(uuid())
+  userTenantId String
+  roleId       String
+
+  userTenant   UserTenant @relation(fields: [userTenantId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userTenantId, roleId])
+}
+
+// -------------------------------------------------------------
+// SCHOOL MASTER & ACADEMICS
+// -------------------------------------------------------------
+
+model School {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nameEn         String
+  nameGu         String
+  code           String
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  district       String?
+  taluka         String?
+  state          String   @default("Gujarat")
+  pinCode        String?
+  phone          String?
+  email          String?
+  website        String?
+  logoUrl        String?
+  faviconUrl     String?
+  primaryColor   String   @default("#1E40AF")
+  secondaryColor String   @default("#F59E0B")
+  principalName  String?
+  schoolType     String   @default("PRIMARY")
+  medium         String   @default("GUJARATI")
+  board          String   @default("GSEB")
+  registrationNo String?
+  diseCode       String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model AcademicYear {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  isCurrent   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  classSubjects ClassSubject[]
+  teacherAssignments TeacherAssignment[]
+  studentAttendances StudentAttendance[]
+  timetablePeriods TimetablePeriod[]
+  timetableEntries TimetableEntry[]
+  examTypes   ExamType[]
+  feeStructures FeeStructure[]
+  feePayments FeePayment[]
+  gradeConfigs GradeConfig[]
+
+  @@unique([tenantId, name])
+}
+
+model FinancialYear {
+  id             String   @id @default(uuid())
+  tenantId       String
+  name           String
+  startDate      DateTime
+  endDate        DateTime
+  isCurrent      Boolean  @default(false)
+  isClosed       Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  chartOfAccounts ChartOfAccount[]
+  journalEntries JournalEntry[]
+  expenses       Expense[]
+  grants         Grant[]
+
+  @@unique([tenantId, name])
+}
+
+model Class {
+  id             String   @id @default(uuid())
+  tenantId       String
+  nameEn         String
+  nameGu         String
+  numericOrder   Int
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  divisions      Division[]
+  classSubjects  ClassSubject[]
+  enrollments    Enrollment[]
+  teacherAssignments TeacherAssignment[]
+  timetableEntries TimetableEntry[]
+  exams          Exam[]
+  feeStructures  FeeStructure[]
+
+  @@unique([tenantId, numericOrder])
+}
+
+model Division {
+  id          String   @id @default(uuid())
+  tenantId    String
+  classId     String
+  nameEn      String
+  nameGu      String
+  capacity    Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  teacherAssignments TeacherAssignment[]
+  timetableEntries TimetableEntry[]
+
+  @@unique([classId, nameEn])
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  tenantId    String
+  nameEn      String
+  nameGu      String
+  code        String
+  subjectType String   @default("theory")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  classSubjects ClassSubject[]
+  teacherAssignments TeacherAssignment[]
+  timetableEntries TimetableEntry[]
+  exams       Exam[]
+
+  @@unique([tenantId, code])
+}
+
+model ClassSubject {
+  id             String       @id @default(uuid())
+  classId        String
+  subjectId      String
+  academicYearId String
+  isActive       Boolean      @default(true)
+
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject        Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, subjectId, academicYearId])
+}
+
+// -------------------------------------------------------------
+// STUDENTS & STAFF
+// -------------------------------------------------------------
+
+model Student {
+  id             String   @id @default(uuid())
+  tenantId       String
+  userId         String?
+  grNumber       String
+  admissionNo    String?
+  firstNameEn    String
+  middleNameEn   String?
+  lastNameEn     String
+  firstNameGu    String
+  middleNameGu   String?
+  lastNameGu     String
+  gender         String
+  dateOfBirth    DateTime
+  dobInWords     String?
+  bloodGroup     String?
+  aadhaarNumber  String?
+  apaarId        String?
+  ctsUniqueId    String?
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  district       String?
+  pinCode        String?
+  phone          String?
+  email          String?
+  photoUrl       String?
+  admissionDate  DateTime?
+  previousSchool String?
+  category       String?
+  religion       String?
+  nationality    String   @default("Indian")
+  motherTongue   String?  @default("Gujarati")
+  status         String   @default("ACTIVE")
+  statusDate     DateTime?
+  statusReason   String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user           User?    @relation(fields: [userId], references: [id])
+  enrollments    Enrollment[]
+  studentParents StudentParent[]
+  studentAttendances StudentAttendance[]
+  marks          Marks[]
+  studentFees    StudentFee[]
+  feePayments    FeePayment[]
+
+  @@unique([tenantId, grNumber])
+}
+
+model Parent {
+  id           String   @id @default(uuid())
+  tenantId     String
+  userId       String?
+  relationType String
+  firstNameEn  String
+  lastNameEn   String?
+  firstNameGu  String
+  lastNameGu   String?
+  phone        String?
+  email        String?
+  occupation   String?
+  annualIncome Float?
+  address      String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user         User?    @relation(fields: [userId], references: [id])
+  studentParents StudentParent[]
+}
+
+model StudentParent {
+  id        String   @id @default(uuid())
+  studentId String
+  parentId  String
+  isPrimary Boolean  @default(false)
+
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent    Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, parentId])
+}
+
+model Enrollment {
+  id             String       @id @default(uuid())
+  tenantId       String
+  studentId      String
+  academicYearId String
+  classId        String
+  divisionId     String?
+  rollNumber     Int?
+  enrollmentDate DateTime     @default(now())
+  status         String       @default("ACTIVE")
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  division       Division?    @relation(fields: [divisionId], references: [id])
+  studentAttendances StudentAttendance[]
+  marks          Marks[]
+  studentFees    StudentFee[]
+
+  @@unique([tenantId, studentId, academicYearId])
+}
+
+model Staff {
+  id              String   @id @default(uuid())
+  tenantId        String
+  userId          String?
+  employeeId      String
+  firstNameEn     String
+  middleNameEn    String?
+  lastNameEn      String
+  firstNameGu     String
+  middleNameGu    String?
+  lastNameGu      String
+  gender          String?
+  dateOfBirth     DateTime?
+  phone           String?
+  email           String?
+  photoUrl        String?
+  designation     String
+  department      String?
+  qualification   String?
+  specialization  String?
+  experienceYears Int?
+  joiningDate     DateTime?
+  leavingDate     DateTime?
+  staffType       String   @default("TEACHING")
+  employmentType  String   @default("PERMANENT")
+  salaryAmount    Float?
+  bankName        String?
+  bankAccountNo   String?
+  bankIfsc        String?
+  address         String?
+  status          String   @default("ACTIVE")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user            User?    @relation(fields: [userId], references: [id])
+  teacherAssignments TeacherAssignment[]
+  staffAttendances StaffAttendance[]
+  timetableEntries TimetableEntry[]
+
+  @@unique([tenantId, employeeId])
+}
+
+model TeacherAssignment {
+  id             String       @id @default(uuid())
+  tenantId       String
+  staffId        String
+  classId        String
+  divisionId     String?
+  subjectId      String?
+  academicYearId String
+  isClassTeacher Boolean      @default(false)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff          Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  division       Division?    @relation(fields: [divisionId], references: [id])
+  subject        Subject?     @relation(fields: [subjectId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// ATTENDANCE & TIMETABLE
+// -------------------------------------------------------------
+
+model StudentAttendance {
+  id             String       @id @default(uuid())
+  tenantId       String
+  studentId      String
+  enrollmentId   String
+  academicYearId String
+  attendanceDate DateTime
+  status         String
+  remark         String?
+  markedBy       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment     Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, studentId, attendanceDate])
+}
+
+model StaffAttendance {
+  id             String   @id @default(uuid())
+  tenantId       String
+  staffId        String
+  attendanceDate DateTime
+  status         String
+  leaveType      String?
+  remark         String?
+  markedBy       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff          Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, staffId, attendanceDate])
+}
+
+model TimetablePeriod {
+  id             String       @id @default(uuid())
+  tenantId       String
+  academicYearId String
+  nameEn         String
+  nameGu         String
+  periodNumber   Int
+  startTime      String
+  endTime        String
+  isBreak        Boolean      @default(false)
+  isActive       Boolean      @default(true)
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  timetableEntries TimetableEntry[]
+
+  @@unique([tenantId, academicYearId, periodNumber])
+}
+
+model TimetableEntry {
+  id             String          @id @default(uuid())
+  tenantId       String
+  academicYearId String
+  classId        String
+  divisionId     String?
+  periodId       String
+  subjectId      String?
+  staffId        String?
+  dayOfWeek      Int
+  roomName       String?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear    @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class          Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  division       Division?       @relation(fields: [divisionId], references: [id])
+  period         TimetablePeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  subject        Subject?        @relation(fields: [subjectId], references: [id])
+  staff          Staff?          @relation(fields: [staffId], references: [id])
+}
+
+// -------------------------------------------------------------
+// EXAMINATIONS & MARKS
+// -------------------------------------------------------------
+
+model ExamType {
+  id                 String       @id @default(uuid())
+  tenantId           String
+  nameEn             String
+  nameGu             String
+  academicYearId     String
+  maxMarksDefault    Float?
+  passingPercentage  Float        @default(33.00)
+  weightage          Float        @default(100.00)
+  sequenceOrder      Int?
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear       AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  exams              Exam[]
+}
+
+model Exam {
+  id             String   @id @default(uuid())
+  tenantId       String
+  examTypeId     String
+  classId        String
+  subjectId      String
+  examDate       DateTime?
+  startTime      String?
+  endTime        String?
+  maxMarks       Float
+  passingMarks   Float
+  theoryMax      Float?
+  practicalMax   Float?
+  internalMax    Float?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  examType       ExamType @relation(fields: [examTypeId], references: [id], onDelete: Cascade)
+  class          Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject        Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  marks          Marks[]
+}
+
+model Marks {
+  id             String     @id @default(uuid())
+  tenantId       String
+  examId         String
+  studentId      String
+  enrollmentId   String
+  theoryMarks    Float?
+  practicalMarks Float?
+  internalMarks  Float?
+  graceMarks     Float?     @default(0)
+  totalMarks     Float?
+  grade          String?
+  isAbsent       Boolean    @default(false)
+  isExempted     Boolean    @default(false)
+  remark         String?
+  enteredBy      String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  tenant         Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exam           Exam       @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student        Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment     Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+}
+
+model GradeConfig {
+  id             String       @id @default(uuid())
+  tenantId       String
+  academicYearId String
+  grade          String
+  minPercentage  Float
+  maxPercentage  Float
+  gradePoint     Float?
+  descriptionEn  String?
+  descriptionGu  String?
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, academicYearId, grade])
+}
+
+// -------------------------------------------------------------
+// FEES MANAGEMENT
+// -------------------------------------------------------------
+
+model FeeHead {
+  id            String         @id @default(uuid())
+  tenantId      String
+  nameEn        String
+  nameGu        String
+  code          String
+  accountId     String?
+  isRefundable  Boolean        @default(false)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account       ChartOfAccount? @relation(fields: [accountId], references: [id])
+  feeStructures FeeStructure[]
+
+  @@unique([tenantId, code])
+}
+
+model FeeStructure {
+  id             String       @id @default(uuid())
+  tenantId       String
+  academicYearId String
+  classId        String
+  feeHeadId      String
+  amount         Float
+  dueDate        DateTime?
+  installmentNo  Int          @default(1)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  tenant         Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class          Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  feeHead        FeeHead      @relation(fields: [feeHeadId], references: [id], onDelete: Cascade)
+  studentFees    StudentFee[]
+}
+
+model StudentFee {
+  id             String         @id @default(uuid())
+  tenantId       String
+  studentId      String
+  enrollmentId   String
+  feeStructureId String
+  amount         Float
+  discountAmount Float          @default(0)
+  discountReason String?
+  concessionType String?
+  fineAmount     Float          @default(0)
+  netAmount      Float
+  paidAmount     Float          @default(0)
+  status         String         @default("PENDING")
+  dueDate        DateTime?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student        Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment     Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  feeStructure   FeeStructure   @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  paymentItems   FeePaymentItem[]
+}
+
+model FeePayment {
+  id                 String           @id @default(uuid())
+  tenantId           String
+  receiptNumber      String
+  studentId          String
+  academicYearId     String
+  paymentDate        DateTime         @default(now())
+  totalAmount        Float
+  paymentMode        String
+  referenceNo        String?
+  bankName           String?
+  narration          String?
+  status             String           @default("ACTIVE")
+  cancellationReason String?
+  cancelledAt        DateTime?
+  cancelledById      String?
+  journalEntryId     String?
+  receivedById       String
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  tenant             Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student            Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear       AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  receivedBy         User             @relation("ReceivedBy", fields: [receivedById], references: [id])
+  cancelledBy        User?            @relation("CancelledBy", fields: [cancelledById], references: [id])
+  journalEntry       JournalEntry?    @relation(fields: [journalEntryId], references: [id])
+  items              FeePaymentItem[]
+
+  @@unique([tenantId, receiptNumber])
+}
+
+model FeePaymentItem {
+  id           String     @id @default(uuid())
+  feePaymentId String
+  studentFeeId String
+  amount       Float
+  createdAt    DateTime   @default(now())
+
+  feePayment   FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Cascade)
+  studentFee   StudentFee @relation(fields: [studentFeeId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------------
+// ACCOUNTING (DOUBLE-ENTRY) & ROJMEL
+// -------------------------------------------------------------
+
+model AccountGroup {
+  id            String           @id @default(uuid())
+  tenantId      String
+  nameEn        String
+  nameGu        String
+  parentId      String?
+  groupType     String           // ASSET, LIABILITY, INCOME, EXPENSE, EQUITY
+  isSystem      Boolean          @default(false)
+  sequenceOrder Int?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent        AccountGroup?    @relation("GroupHierarchy", fields: [parentId], references: [id])
+  children      AccountGroup[]   @relation("GroupHierarchy")
+  accounts      ChartOfAccount[]
+
+  @@unique([tenantId, nameEn])
+}
+
+model ChartOfAccount {
+  id              String         @id @default(uuid())
+  tenantId        String
+  accountGroupId  String
+  code            String
+  nameEn          String
+  nameGu          String
+  accountType     String         // ASSET, LIABILITY, INCOME, EXPENSE, EQUITY
+  accountNature   String         // DEBIT, CREDIT
+  openingBalance  Float          @default(0)
+  currentBalance  Float          @default(0)
+  financialYearId String
+  isBankAccount   Boolean        @default(false)
+  isCashAccount   Boolean        @default(false)
+  isSystem        Boolean        @default(false)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  accountGroup    AccountGroup   @relation(fields: [accountGroupId], references: [id])
+  financialYear   FinancialYear  @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  bankAccounts    BankAccount[]
+  journalLines    JournalLine[]
+  feeHeads        FeeHead[]
+  expenses        Expense[]      @relation("ExpenseHead")
+  paymentExpenses Expense[]      @relation("PaymentAccount")
+  grants          Grant[]
+
+  @@unique([tenantId, code, financialYearId])
+}
+
+model BankAccount {
+  id            String         @id @default(uuid())
+  tenantId      String
+  accountId     String
+  bankName      String
+  branchName    String?
+  accountNumber String
+  ifscCode      String?
+  accountType   String         @default("SAVINGS")
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  account       ChartOfAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model JournalEntry {
+  id                 String         @id @default(uuid())
+  tenantId           String
+  entryNumber        String
+  financialYearId    String
+  entryDate          DateTime
+  entryType          String         // RECEIPT, PAYMENT, JOURNAL, CONTRA, FEE_RECEIPT
+  narration          String?
+  totalAmount        Float
+  referenceType      String?        // fee_payment, expense, grant, transfer, manual
+  referenceId        String?
+  voucherNumber      String?
+  status             String         @default("ACTIVE") // ACTIVE, REVERSED, CANCELLED
+  reversalOf         String?
+  reversedById       String?
+  cancellationReason String?
+  createdById        String
+  approvedById       String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  tenant             Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  financialYear      FinancialYear  @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  createdBy          User           @relation("CreatedBy", fields: [createdById], references: [id])
+  approvedBy         User?          @relation("ApprovedBy", fields: [approvedById], references: [id])
+  lines              JournalLine[]
+  feePayments        FeePayment[]
+  expenses           Expense[]
+  grantTransactions  GrantTransaction[]
+
+  @@unique([tenantId, entryNumber, financialYearId])
+}
+
+model JournalLine {
+  id             String         @id @default(uuid())
+  journalEntryId String
+  accountId      String
+  debitAmount    Float          @default(0)
+  creditAmount   Float          @default(0)
+  narration      String?
+  createdAt      DateTime       @default(now())
+
+  journalEntry   JournalEntry   @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account        ChartOfAccount @relation(fields: [accountId], references: [id])
+}
+
+// -------------------------------------------------------------
+// EXPENSES & GRANTS
+// -------------------------------------------------------------
+
+model Expense {
+  id               String         @id @default(uuid())
+  tenantId         String
+  financialYearId  String
+  expenseNumber    String?
+  expenseDate      DateTime
+  accountId        String         // Expense head
+  amount           Float
+  paymentMode      String
+  paymentAccountId String         // Bank or cash account
+  vendorName       String?
+  description      String?
+  referenceNo      String?
+  approvalStatus   String         @default("PENDING")
+  approvedById     String?
+  approvedAt       DateTime?
+  journalEntryId   String?
+  status           String         @default("ACTIVE")
+  createdById      String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  financialYear    FinancialYear  @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  account          ChartOfAccount @relation("ExpenseHead", fields: [accountId], references: [id])
+  paymentAccount   ChartOfAccount @relation("PaymentAccount", fields: [paymentAccountId], references: [id])
+  createdBy        User           @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+  approvedBy       User?          @relation("ExpenseApprovedBy", fields: [approvedById], references: [id])
+  journalEntry     JournalEntry?  @relation(fields: [journalEntryId], references: [id])
+}
+
+model Grant {
+  id                   String         @id @default(uuid())
+  tenantId             String
+  nameEn               String
+  nameGu               String
+  grantType            String?        // SSA, RMSA, State, Central, LocalBody, Other
+  source               String?        // Sanctioning authority name
+  grantHead            String?        // Purpose / head of grant
+  sanctionedAmount     Float
+  receivedAmount       Float          @default(0)
+  utilizedAmount       Float          @default(0)
+  financialYearId      String
+  accountId            String?        // Linked CoA account (Income/Grant account)
+  startDate            DateTime?
+  endDate              DateTime?
+  sanctionLetterNo     String?
+  sanctionDate         DateTime?
+  remarks              String?
+  // Override workflow
+  overrideRequested    Boolean        @default(false)
+  overrideRequestedBy  String?
+  overrideApprovedBy   String?
+  overrideReason       String?
+  overrideApprovedAt   DateTime?
+  status               String         @default("ACTIVE")
+  isActive             Boolean        @default(true)
+  createdById          String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  tenant               Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  financialYear        FinancialYear  @relation(fields: [financialYearId], references: [id], onDelete: Cascade)
+  account              ChartOfAccount? @relation(fields: [accountId], references: [id])
+  transactions         GrantTransaction[]
+}
+
+model GrantTransaction {
+  id              String        @id @default(uuid())
+  tenantId        String
+  grantId         String
+  transactionType String        // RECEIPT, UTILIZATION
+  amount          Float
+  transactionDate DateTime
+  description     String?
+  referenceNo     String?
+  cashAccountId   String?       // Cash/Bank account for accounting integration
+  journalEntryId  String?
+  createdById     String
+  createdAt       DateTime      @default(now())
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  grant           Grant         @relation(fields: [grantId], references: [id], onDelete: Cascade)
+  journalEntry    JournalEntry? @relation(fields: [journalEntryId], references: [id])
+}
+
+// -------------------------------------------------------------
+// DOCUMENTS, NOTIFICATIONS, AUDIT & SETTINGS
+// -------------------------------------------------------------
+
+model Document {
+  id          String   @id @default(uuid())
+  tenantId    String
+  entityType  String
+  entityId    String
+  fileName    String
+  fileType    String?
+  fileSize    Int?
+  storagePath String
+  uploadedBy  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id               String   @id @default(uuid())
+  tenantId         String
+  titleEn          String
+  titleGu          String
+  bodyEn           String?
+  bodyGu           String?
+  notificationType String   @default("INFO")
+  targetType       String   @default("ALL")
+  targetId         String?
+  link             String?
+  isActive         Boolean  @default(true)
+  createdById      String?
+  createdAt        DateTime @default(now())
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  userId     String
+  action     String
+  entityType String
+  entityId   String?
+  oldValues  String?  // JSON string
+  newValues  String?  // JSON string
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SchoolSetting {
+  id           String   @id @default(uuid())
+  tenantId     String
+  settingKey   String
+  settingValue String
+  settingType  String   @default("string")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, settingKey])
+}
+
+// -------------------------------------------------------------
+// AUTHENTICATION & OTP VERIFICATION
+// -------------------------------------------------------------
+
+model OtpVerification {
+  id          String   @id @default(uuid())
+  identifier  String   // Phone or Email
+  otp         String   // 6-digit OTP code
+  purpose     String   @default("REGISTRATION") // REGISTRATION, LOGIN, FORGOT_PASSWORD
+  expiresAt   DateTime
+  isVerified  Boolean  @default(false)
+  attempts    Int      @default(0)
+  metadata    String?  // Optional JSON string for provisional registration data
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([identifier, purpose])
+}
+
