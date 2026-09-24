@@ -112,7 +112,15 @@ export default function FeesPage() {
   };
 
   return (
-    <div className="space-y-6 font-gujarati">
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-gujarati">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <a href="/dashboard" className="text-blue-600 hover:underline flex items-center gap-1">
+          <i className="bi bi-house-door"></i> Dashboard
+        </a>
+        <span>/</span>
+        <span>{t.fees.title || 'ફી વ્યવસ્થાપન (Fees)'}</span>
+      </div>
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
         <div>

@@ -219,7 +219,15 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 font-gujarati pb-12">
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-gujarati pb-12">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <a href="/dashboard" className="text-blue-600 hover:underline flex items-center gap-1">
+          <i className="bi bi-house-door"></i> Dashboard
+        </a>
+        <span>/</span>
+        <span>રિપોર્ટિંગ તથા ડેટા સેન્ટર (Reports)</span>
+      </div>
       {/* Top Header */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

@@ -275,7 +275,15 @@ export default function RojmelPage() {
   };
 
   return (
-    <div className="space-y-6 font-gujarati pb-12">
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-gujarati pb-12">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-xs text-slate-500 print:hidden">
+        <a href="/dashboard" className="text-blue-600 hover:underline flex items-center gap-1">
+          <i className="bi bi-house-door"></i> Dashboard
+        </a>
+        <span>/</span>
+        <span>શ્રી રોજમેળ (દેશી નામા પદ્ધતિ)</span>
+      </div>
       {/* 1. Header & Quick Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm print:hidden">
         <div>

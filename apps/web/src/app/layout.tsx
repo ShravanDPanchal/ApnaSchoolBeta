@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   description: 'White-label School ERP and Double-Entry Accounting Platform for Gujarat Schools',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#007ed4',
+};
+
 export default function RootLayout({
   children,
 }: {

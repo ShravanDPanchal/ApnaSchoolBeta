@@ -258,7 +258,15 @@ export default function ExamPage() {
   };
 
   return (
-    <div className="space-y-6 font-gujarati">
+    <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 font-gujarati">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <a href="/dashboard" className="text-blue-600 hover:underline flex items-center gap-1">
+          <i className="bi bi-house-door"></i> Dashboard
+        </a>
+        <span>/</span>
+        <span>{t.exam?.title || 'પરીક્ષા & પરિણામ (Exam)'}</span>
+      </div>
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
         <div>
@@ -360,13 +368,13 @@ export default function ExamPage() {
 
       {/* TAB 1: EXAM SCHEDULES */}
       {activeTab === 'SCHEDULES' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-xs">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto text-xs">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-800">
               આયોજિત પરીક્ષાઓની યાદી ({schedules.length})
             </h2>
           </div>
-          <table className="w-full text-left text-slate-700">
+          <table className="w-full text-left text-slate-700 min-w-[700px]">
             <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">પરીક્ષા તારીખ</th>
@@ -480,8 +488,8 @@ export default function ExamPage() {
           )}
 
           {/* Marks Entry Grid */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden text-xs">
-            <table className="w-full text-left text-slate-700">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto text-xs">
+            <table className="w-full text-left text-slate-700 min-w-[750px]">
               <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-[11px] uppercase">
                 <tr>
                   <th className="py-3 px-3 w-16 text-center">રોલ નં</th>
